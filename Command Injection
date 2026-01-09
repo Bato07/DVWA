@@ -1,0 +1,74 @@
+---
+
+# Command Injection
+
+## 1. Nazwa podatności
+
+**A05:2025 Injection – Command Injection**
+
+## 2. Krótki opis
+
+W aplikacji Damn Vulnerable Web Application (DVWA) zidentyfikowano podatność typu **Command Injection** w module *Command Injection*. Dane wejściowe dostarczane przez użytkownika (np. parametr `ip`) są przekazywane bezpośrednio do funkcji systemowych systemu operacyjnego bez odpowiedniej walidacji i filtrowania. Umożliwia to atakującemu wstrzyknięcie oraz wykonanie dowolnych poleceń systemowych na serwerze aplikacji.
+
+## 3. Środowisko i założenia
+
+* Aplikacja: DVWA, poziom bezpieczeństwa: **Medium**
+* Moduł: Command Injection
+* Narzędzia: przeglądarka, Burp Suite
+* System testowy: Linux / przeglądarka Chromium
+* Kontekst: parametr `ip` przesyłany metodą POST (np. do polecenia `ping`)
+
+## 4. Kroki reprodukcji (PoC)
+
+1. Zalogować się do aplikacji DVWA.
+2. Przejść do zakładki **Command Injection**.
+3. Przechwycić żądanie POST przy użyciu Burp Suite.
+4. Zmodyfikować parametr `ip`, dodając polecenie systemowe, np.:
+
+   ```
+   ip=127.0.0.1; cat /etc/passwd
+   ```
+5. Wysłać zmodyfikowane żądanie do serwera.
+6. Zaobserwować w odpowiedzi aplikacji wynik wykonania dodatkowego polecenia systemowego (zawartość pliku `/etc/passwd`).
+
+## 5. Dowody (Screenshots)
+
+![Command Injection](command_injection.png)
+
+## 6. Wpływ (CIA + biznesowy)
+
+* **Poufność:** Odczyt wrażliwych plików systemowych i danych konfiguracyjnych.
+* **Integralność:** Możliwość modyfikacji lub usunięcia plików systemowych oraz danych aplikacji.
+* **Dostępność:** Ryzyko unieruchomienia systemu poprzez wykonanie destrukcyjnych poleceń (np. fork bomb).
+* **Biznes:** Pełne przejęcie serwera aplikacyjnego, naruszenie RODO, utrata zaufania klientów oraz znaczne straty finansowe.
+
+## 7. Ocena ryzyka (CVSS v3.1)
+
+* **Wektor:** AV:N / AC:L / PR:N / UI:N / S:U / C:H / I:H / A:H
+* **Wynik:** **9.8 (Critical)**
+
+**Uzasadnienie:** podatność umożliwia zdalne, nieautoryzowane wykonanie poleceń systemowych z pełnym wpływem na poufność, integralność i dostępność systemu.
+
+## 8. Rekomendowana mitigacja
+
+* Bezwzględne unikanie wywołań poleceń systemowych z użyciem danych wejściowych użytkownika.
+* Stosowanie whitelist (dozwolonych wartości) zamiast blacklist.
+* Walidacja i filtrowanie danych wejściowych (np. tylko poprawny adres IP).
+* Uruchamianie aplikacji z minimalnymi uprawnieniami systemowymi.
+* Separacja aplikacji (konteneryzacja, sandboxing).
+
+## 9. Wskazówki naprawcze
+
+* Zastąpić wywołania typu `exec()`, `system()`, `shell_exec()` bezpiecznymi funkcjami aplikacyjnymi.
+* W przypadku konieczności użycia poleceń systemowych – stosować argumenty przekazywane jako tablice (bez interpretacji przez shell).
+* Ograniczyć uprawnienia użytkownika systemowego, na którym działa aplikacja.
+* Wdrożyć standard **OWASP ASVS** oraz przeprowadzić retesty bezpieczeństwa po wprowadzeniu poprawek.
+
+---
+
+Jeśli chcesz, mogę:
+
+* dostosować to **dokładnie pod poziom Low / High** w DVWA
+* skrócić do wersji **raportowej (1–2 strony)**
+* albo przepisać to **w stylu formalnego raportu pentesterskiego**
+
